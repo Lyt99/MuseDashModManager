@@ -17,11 +17,18 @@ using Assets.Scripts.PeroTools.AssetBundles;
 using Assets.Scripts.PeroTools.Nice.Events;
 using Assets.Scripts.PeroTools.Nice.Actions;
 using System.IO;
+using GameLogic;
+using Assets.Scripts.PeroTools.Nice.Datas;
 
 namespace MuseDashModManager.Patches
 {
     class CustomMap
     {
+        public static StageInfo compiledStageInfo;
+
+        // 用这个来编译bms到MusicData
+        public static MusicConfigReader musicConfigReader = (MusicConfigReader)Activator.CreateInstance(typeof(MusicConfigReader), true);
+
         public static Sprite spriteNoCover = null;
 
         public static CustomListVariable variable = new CustomListVariable();
@@ -43,6 +50,9 @@ namespace MuseDashModManager.Patches
             ImageConversion.LoadImage(tex, binary);
             spriteNoCover = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
 
+            //var m = SingletonScriptableObject<ConstanceManager>.instance.constances.Find(t => t.key == "IsEditorMode");
+            //m.value = "true";
+
             InitCustomJArray();
         }
 
@@ -63,7 +73,7 @@ namespace MuseDashModManager.Patches
             @object.Add("music", "iyaiya_music");
             @object.Add("demo", "iyaiya_demo");
             @object.Add("cover", "iyaiya_cover");
-            @object.Add("noteJson", "iyaiya_map");
+            @object.Add("noteJson", "custom_map");
             @object.Add("scene", "scene_01");
             @object.Add("difficulty1", "10");
             @object.Add("difficulty2", "11");
@@ -133,6 +143,7 @@ namespace MuseDashModManager.Patches
             }
         }
 
+        public static bool HasInitAlbumDatas;
         public static void InitAlbumDatasPostfix(PnlStage __instance)
         {
             var dtype = typeof(PnlStage).GetNestedType("GetData", BindingFlags.NonPublic);
@@ -142,6 +153,19 @@ namespace MuseDashModManager.Patches
             var field = configManagerType.GetField("m_AlbumDatas", BindingFlags.NonPublic | BindingFlags.Instance);
             var m_AlbumDatas =
                 (object[])field.GetValue(__instance);
+
+            if (HasInitAlbumDatas)
+            {
+                // 把第2个挪到最后去，别问我为什么
+                for (int i = 2; i < m_AlbumDatas.Length - 1; ++i)
+                {
+                    object swap = m_AlbumDatas[i + 1];
+                    m_AlbumDatas[i + 1] = m_AlbumDatas[i];
+                    m_AlbumDatas[i] = swap;
+                }
+                return;
+            }
+            HasInitAlbumDatas = true;
 
             var dictype = m_AlbumDatas[0].GetType();
 
@@ -165,16 +189,34 @@ namespace MuseDashModManager.Patches
 
             var sView = __instance.albumFancyScrollView;
 
+            var configManager = Singleton<ConfigManager>.instance;
+            var mData = (Dictionary<string, JArray>)AccessTools.Field(typeof(ConfigManager), "m_Dictionary").GetValue(configManager);
+
+            var @object = new JObject();
+            @object.Add("uid", "custom");
+            @object.Add("title", "Custom Maps");
+            @object.Add("prefabsName", "AlbumCustom");
+            @object.Add("price", "Free");
+            @object.Add("jsonName", "custom");
+            @object.Add("needPurchase", "false");
+            @object.Add("free", true);
+
+            mData["albums"].Add(@object);
+
+            var title = new JObject();
+            title.Add("title", "自定义谱面");
+            configManager["albums"].Add(title);
             //Transform aChild = (Transform)sView.content.GetChild(0);
             //aChild = (Transform)aChild.UnityClone();
             //aChild.name = "AlbumCustom";
             //aChild.SetParent(sView.content);
+
+            compiledStageInfo = LoadAndCreateStageInfo("test");
         }
 
-        private static bool albumChildrenAdded = false;
         public static void FancyScrollAlbumRebuildChildrenPrefix(FancyScrollView __instance)
         {
-            if (__instance.name == "FancyScrollAlbum" && !albumChildrenAdded)
+            if (__instance.name == "FancyScrollAlbum")
             {
                 GameObject custom = GameObject.Instantiate(__instance.content.GetChild(0).gameObject);
                 custom.name = "ImgAlbumCustom";
@@ -185,9 +227,9 @@ namespace MuseDashModManager.Patches
                 text.text = "自定义谱面";
 
                 transform.GetComponents(typeof(UnityEngine.Object));
+                custom.transform.SetSiblingIndex(__instance.content.childCount);
                 custom.transform.SetParent(__instance.content);
 
-                albumChildrenAdded = true;
             }
         }
 
@@ -217,6 +259,83 @@ namespace MuseDashModManager.Patches
 
             return prefabs;
             //musicAdded = true;
+        }
+
+        public static bool IsCanPreparationOutPrefix(PnlStage __instance, ref bool __result)
+        {
+            if(__instance.GetSelectedMusicAlbumJsonName() == "custom")
+            {
+                __result = true;
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool SetBgLockActionPrefix(PnlStage __instance)
+        {
+            if(__instance.GetSelectedMusicAlbumJsonName() == "custom")
+            {
+                __instance.bgAlbumLock.SetActive(false);
+                __instance.txtBudgetIsBurning.SetActive(false);
+                __instance.txtNotPurchase.SetActive(false);
+                return false;
+            }
+
+            return true;
+        }
+
+        public static StageInfo LoadAndCreateStageInfo(string filename) // 不需要.bms
+        {
+            /* 1.加载bms
+             * 2.转换为MusicData
+             * 3.创建StageInfo
+             * */
+
+            AccessTools.Method(typeof(iBMSCManager), "set_bmsFile").Invoke(iBMSCManager.instance, new object[] { Application.streamingAssetsPath });
+            var bms = iBMSCManager.instance.Load(filename);
+
+            if (bms == null) {
+                return null;
+            }
+
+            musicConfigReader.ClearData();
+            musicConfigReader.bms = bms;
+            musicConfigReader.Init("");
+
+
+            var info = from m in musicConfigReader.GetData().ToArray() select (MusicData)m;
+
+            StageInfo stgInfo = new StageInfo
+            {
+                musicDatas = info,
+                delay = musicConfigReader.delay,
+                mapName = (string)musicConfigReader.bms.info["NAME"],
+                music = ((string)musicConfigReader.bms.info["WAV10"]).BeginBefore('.'),
+                scene = (string)musicConfigReader.bms.info["GENRE"],
+                difficulty = int.Parse((string)musicConfigReader.bms.info["RANK"]),
+                bpm = musicConfigReader.bms.GetBpm(),
+                md5 = musicConfigReader.bms.md5,
+                sceneEvents = musicConfigReader.sceneEvents
+            };
+
+
+            return stgInfo;
+        }
+
+        public static bool OnBattleEndPrefix()
+        {
+            if (Singleton<DataManager>.instance["Account"]["SelectedMusicUid"].GetResult<string>().StartsWith("custom-")) return false;
+            return true;
+        }
+
+        public static void ChangeMusicPostfix(PnlStage __instance)
+        {
+            if(__instance.GetSelectedMusicAlbumJsonName() == "custom")
+            {
+                __instance.difficulty3Lock.SetActive(false);
+                __instance.difficulty3Master.SetActive(__instance.difficulty3.text != "0");
+            }
         }
     }
 }

@@ -24,6 +24,8 @@ namespace MuseDashModManager
             {
                 case "AlbumCustom":
                     return Patches.CustomMap.CreateCustomMusicCells();
+                case "custom_map2":
+                    return Patches.CustomMap.compiledStageInfo;
             }
 
             return null;
