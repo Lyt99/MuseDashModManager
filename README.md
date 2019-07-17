@@ -6,7 +6,7 @@ MushDash自制谱面管理器，支持在游戏内加载自制谱面
 
 ## 使用方法
 
-使用**Visual Studio 2019**打开项目并生成
+使用**Visual Studio 2019**打开项目，补充缺失的引用(位于Managed文件夹内)并生成
 
 将生成的**MuseDashModManager.dll**与**0Harmony.dll**，以及
 
