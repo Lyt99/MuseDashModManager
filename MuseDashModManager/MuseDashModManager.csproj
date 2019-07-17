@@ -69,6 +69,7 @@
     </Reference>
     <Reference Include="UnityEngine.AudioModule">
       <HintPath>D:\SteamLibrary\steamapps\common\Muse Dash\MuseDash_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>D:\SteamLibrary\steamapps\common\Muse Dash\MuseDash_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
