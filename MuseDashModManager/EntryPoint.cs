@@ -13,19 +13,26 @@ namespace MuseDashModManager
         {
             if (hasInited) return;
             hasInited = true;
-            Patches.CustomMap.Init();
+
+            CustomMaps.Util.Init();
             // 安装 Patch
             Patch.InstallPatches();
         }
 
         public static object LoadCustomAssetProxy(string name)
         {
-            switch (name)
+            if(name == null) {
+                return null;
+            }
+
+            if(Global.CustomAssetsList.ContainsKey(name))
             {
-                case "AlbumCustom":
-                    return Patches.CustomMap.CreateCustomMusicCells();
-                case "custom_map2":
-                    return Patches.CustomMap.compiledStageInfo;
+                return Global.CustomAssetsList[name];
+            }
+
+            if(Global.CustomAssetsListEx.ContainsKey(name))
+            {
+                return Global.CustomAssetsListEx[name]();
             }
 
             return null;
