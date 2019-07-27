@@ -174,23 +174,30 @@ namespace MuseDashModManager.CustomMaps
 
         public static UnityEngine.GameObject CreateCustomMusicCells()
         {
-            GameObject prefabs = Singleton<AssetBundleManager>.instance.LoadFromName<GameObject>("AlbumCollection");
-            prefabs = GameObject.Instantiate(prefabs);
-            prefabs.name = "albumCustom";
-            var component = prefabs.GetComponent<OnFancyScrollViewCellUpdate>();
-            var ifp = component.playables[0];
+            if (Global.CustomAlbumCells == null || Global.CustomAlbumCells.Equals(null))
+            {
+                GameObject prefabs = Singleton<AssetBundleManager>.instance.LoadFromName<GameObject>("AlbumCollection");
+                prefabs = GameObject.Instantiate(prefabs);
+                prefabs.name = "albumCustom";
+                var component = prefabs.GetComponent<OnFancyScrollViewCellUpdate>();
+                var ifp = component.playables[0];
 
-            var fexecute = AccessTools.Field(typeof(If), "m_IsExecute");
-            Formula f = (Formula)fexecute.GetValue(ifp);
-            var mparams = (List<IVariable>)AccessTools.Field(typeof(Formula), "m_Params").GetValue(f);
-            mparams[1] = Global.CustomMapNameListVariable; // 替换收藏源为自己的列表
+                var fexecute = AccessTools.Field(typeof(If), "m_IsExecute");
+                Formula f = (Formula)fexecute.GetValue(ifp);
+                var mparams = (List<IVariable>)AccessTools.Field(typeof(Formula), "m_Params").GetValue(f);
+                mparams[1] = Global.CustomMapNameListVariable; // 替换收藏源为自己的列表
 
-            var simage = (SetImage)(((If)ifp).playables[0]);
-            Global.ImageVariable.variable = prefabs.GetComponent<VariableBehaviour>();
-            AccessTools.Field(typeof(SetImage), "m_ImageSource").SetValue(simage, Global.ImageVariable);
-            AccessTools.Field(typeof(SetImage), "m_Path").SetValue(simage, "custom");
+                var simage = (SetImage)(((If)ifp).playables[0]);
+                Global.ImageVariable.variable = prefabs.GetComponent<VariableBehaviour>();
+                AccessTools.Field(typeof(SetImage), "m_ImageSource").SetValue(simage, Global.ImageVariable);
+                AccessTools.Field(typeof(SetImage), "m_Path").SetValue(simage, "custom");
 
-            return prefabs;
+                Global.CustomAlbumCells = prefabs;
+            }
+
+            var ret = GameObject.Instantiate(Global.CustomAlbumCells);
+            ret.name.Replace("(Clone)", string.Empty);
+            return ret;
         }
 
         public static BMSAndStage LoadAndCreateStageInfo(string filename) // 不需要.bms

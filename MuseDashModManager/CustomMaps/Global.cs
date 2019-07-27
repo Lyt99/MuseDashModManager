@@ -20,5 +20,7 @@ namespace MuseDashModManager.CustomMaps
         public static string MapDirectory = "maps";
 
         public static List<CustomMap> CustomMapList = new List<CustomMap>();
+
+        public static GameObject CustomAlbumCells;
     }
 }
