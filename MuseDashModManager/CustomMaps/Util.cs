@@ -30,7 +30,7 @@ namespace MuseDashModManager.CustomMaps
             MuseDashModManager.Util.AddAssetEx("AlbumCustom", CreateCustomMusicCells);
 
             // 设置谱面存储位置
-            AccessTools.Method(typeof(iBMSCManager), "set_bmsFile").Invoke(iBMSCManager.instance, new object[] { Path.Combine(Directory.GetCurrentDirectory(), Global.MapDirectory) });
+            AccessTools.Method(typeof(iBMSCManager), "set_bmsFile").Invoke(iBMSCManager.instance, new object[] { Path.Combine(Directory.GetCurrentDirectory(), Global.MapDirectory).Replace("\\", "/") });
             // 修改大触难度解锁条件，使自定义谱面全解锁
             var original = Singleton<DataManager>.instance["Account"]["IsSelectedUnlockMaster"];
             var newpatch = new CustomMapMasterUnlocker(original);

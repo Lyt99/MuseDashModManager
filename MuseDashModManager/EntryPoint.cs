@@ -12,11 +12,11 @@ namespace MuseDashModManager
         public static void InitManager()
         {
             if (hasInited) return;
-            hasInited = true;
 
             CustomMaps.Util.Init();
             // 安装 Patch
             Patch.InstallPatches();
+            hasInited = true;
         }
 
         public static object LoadCustomAssetProxy(string name)
