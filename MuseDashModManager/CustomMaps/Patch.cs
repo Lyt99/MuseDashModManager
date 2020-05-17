@@ -163,7 +163,9 @@ namespace MuseDashModManager.CustomMaps
             if (__instance.GetSelectedMusicAlbumJsonName() == "custom")
             {
                 __instance.bgAlbumLock.SetActive(false);
-                __instance.txtBudgetIsBurning.SetActive(false);
+                __instance.txtBudgetIsBurning15.SetActive(false);
+                __instance.txtBudgetIsBurning15.SetActive(false);
+                __instance.bgAlbumFree.SetActive(false);
                 __instance.txtNotPurchase.SetActive(false);
 
                 return false;
